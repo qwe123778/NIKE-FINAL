@@ -14,7 +14,8 @@ const PORT = process.env.PORT || 4000;
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4000",
-  "https://nike-final-ten.vercel.app",   // hardcoded as backup
+  "https://nike-final-ten.vercel.app",
+   "https://nike-final-5gxa.vercel.app",   // hardcoded as backup
   process.env.CLIENT_URL,                // also read from env
 ].filter(Boolean);
 
