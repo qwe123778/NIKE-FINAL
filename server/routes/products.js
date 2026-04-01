@@ -4,35 +4,23 @@ import requireAuth, { requireSeller } from "../middleware/requireAuth.js";
 
 const router = Router();
 
-/**
- * GET /api/products
- * Public — returns all products ordered by newest first.
- */
+// GET /api/products — public
 router.get("/", async (_req, res) => {
   try {
-    console.log("[GET /products] Supabase URL:", process.env.SUPABASE_URL ? "set" : "MISSING");
-    console.log("[GET /products] Service key:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "MISSING");
-
     const { data, error } = await supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
 
-    console.log("[GET /products] data:", data);
-    console.log("[GET /products] error:", error);
-
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    console.error("[GET /products] CATCH:", err.message, err);
+    console.error("[GET /products]", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-/**
- * GET /api/products/:id
- * Public — single product by id.
- */
+// GET /api/products/:id — public
 router.get("/:id", async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -45,15 +33,11 @@ router.get("/:id", async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error("[GET /products/:id]", err.message);
-    res.status(500).json({ error: "Failed to fetch product" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-/**
- * POST /api/products
- * Seller only — create a new product listing.
- * Body: { name, category, price, sku, image_url, sizes, weight, offset, description, is_new }
- */
+// POST /api/products — seller only
 router.post("/", requireSeller, async (req, res) => {
   const { name, category, price, sku, image_url, sizes, weight, offset, description, is_new } = req.body;
 
@@ -62,39 +46,45 @@ router.post("/", requireSeller, async (req, res) => {
   }
 
   try {
+    const insertData = {
+      name,
+      category,
+      price:       Number(price),
+      sku:         sku || `SP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      image_url,
+      sizes:       sizes || [7, 8, 9, 10, 11, 12],
+      weight:      weight || "N/A",
+      description: description || "",
+      is_new:      is_new ?? false,
+      seller_id:   req.auth.userId,
+    };
+
+    // "offset" is a reserved word in PostgreSQL — only include if column exists
+    if (offset !== undefined) insertData.offset = offset || "N/A";
+
+    console.log("[POST /products] inserting:", insertData);
+
     const { data, error } = await supabase
       .from("products")
-      .insert([{
-        name,
-        category,
-        price:       Number(price),
-        sku:         sku || `SP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        image_url,
-        sizes:       sizes || [7, 8, 9, 10, 11, 12],
-        weight:      weight || "N/A",
-        offset:      offset || "N/A",
-        description: description || "",
-        is_new:      is_new ?? false,
-        seller_id:   req.auth.userId,
-      }])
+      .insert([insertData])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[POST /products] Supabase error:", error.message, error.details, error.hint);
+      return res.status(500).json({ error: error.message, details: error.details, hint: error.hint });
+    }
+
     res.status(201).json(data);
   } catch (err) {
-    console.error("[POST /products]", err.message);
-    res.status(500).json({ error: "Failed to create product" });
+    console.error("[POST /products] CATCH:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
-/**
- * DELETE /api/products/:id
- * Seller only — delete own product.
- */
+// DELETE /api/products/:id — seller only, own products
 router.delete("/:id", requireSeller, async (req, res) => {
   try {
-    // Verify ownership
     const { data: product } = await supabase
       .from("products")
       .select("seller_id")
@@ -115,7 +105,7 @@ router.delete("/:id", requireSeller, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("[DELETE /products/:id]", err.message);
-    res.status(500).json({ error: "Failed to delete product" });
+    res.status(500).json({ error: err.message });
   }
 });
 
