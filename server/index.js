@@ -62,7 +62,7 @@ const PORT = process.env.PORT || 4000;
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: [/^http:\/\/localhost:\d+$/], // adjust for production domains later
+  origin: [/^http:\/\/localhost:\d+$/, "https://nike-final-ten.vercel.app/" ],
   credentials: true,
 }));
 
