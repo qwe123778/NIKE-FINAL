@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 74 100% 50%;
+    --primary-foreground: 0 0% 4%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 74 100% 50%;
+    --accent-foreground: 0 0% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 74 100% 50%;
+
+    --radius: 4px;
+
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 74 100% 50%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 74 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Archivo Black', sans-serif;
+    @apply tracking-tighter uppercase italic;
+  }
+
+  .font-mono-tech {
+    font-family: 'JetBrains Mono', monospace;
+    @apply text-xs tracking-widest uppercase;
+  }
+
+  .font-body {
+    font-family: 'Archivo', sans-serif;
+    @apply text-base leading-relaxed font-medium;
+  }
+
+  .hero-text {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(4rem, 12vw, 10rem);
+    line-height: 0.85;
+    @apply tracking-tighter uppercase italic;
+  }
+
+  .stadium-section {
+    @apply py-[12vh] md:py-[20vh];
+  }
+
+  .action-button {
+    @apply h-[60px] bg-foreground text-background font-bold uppercase tracking-tighter flex items-center justify-between px-6 hover:bg-primary transition-colors duration-150 rounded-[4px];
+  }
+
+  .card-surface {
+    @apply border border-foreground/10 bg-secondary;
+  }
+}

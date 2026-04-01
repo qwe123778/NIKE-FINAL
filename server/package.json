@@ -1,0 +1,19 @@
+{
+  "name": "nike-commerce-server",
+  "version": "1.0.0",
+  "description": "Express API for Nike Commerce — auth via Clerk, DB via Supabase, payments via Stripe",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
+    "@supabase/supabase-js": "^2.50.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "stripe": "^17.7.0"
+  }
+}
