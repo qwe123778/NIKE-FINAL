@@ -1,3 +1,4 @@
+// middleware/requireAuth.js
 import { clerkClient, verifyToken } from "../lib/clerk.js";
 
 const requireAuth = async (req, res, next) => {
@@ -9,17 +10,18 @@ const requireAuth = async (req, res, next) => {
   const token = authHeader.replace("Bearer ", "");
 
   try {
-   const payload = await verifyToken(token, {
-  secretKey: process.env.CLERK_SECRET_KEY,
-   });
-   const user = await clerkClient.users.getUser(payload.sub);
+    const payload = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+
+    const user = await clerkClient.users.getUser(payload.sub);
 
     req.auth = {
-      userId:    payload.sub,
+      userId: payload.sub,
       sessionId: payload.sid,
-      role:      user.publicMetadata?.role || "buyer",
-      email:     user.emailAddresses?.[0]?.emailAddress || "",
-      name:      user.fullName || user.username || "User",
+      role: user.publicMetadata?.role || "buyer",
+      email: user.emailAddresses?.[0]?.emailAddress || "",
+      name: user.fullName || user.username || "User",
     };
 
     next();
