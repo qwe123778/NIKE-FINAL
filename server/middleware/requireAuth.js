@@ -1,7 +1,6 @@
-// middleware/requireAuth.js
-import { clerkClient, verifyToken } from "../lib/clerk.js";
+import { verifyToken } from "@clerk/express";
+import { clerkClient } from "../lib/clerk.js";
 
-// Middleware to require authentication
 const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -18,11 +17,11 @@ const requireAuth = async (req, res, next) => {
     const user = await clerkClient.users.getUser(payload.sub);
 
     req.auth = {
-      userId: payload.sub,
+      userId:    payload.sub,
       sessionId: payload.sid,
-      role: user.publicMetadata?.role || "buyer",
-      email: user.emailAddresses?.[0]?.emailAddress || "",
-      name: user.fullName || user.username || "User",
+      role:      user.publicMetadata?.role || "buyer",
+      email:     user.emailAddresses?.[0]?.emailAddress || "",
+      name:      user.fullName || user.username || "User",
     };
 
     next();
@@ -32,8 +31,7 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
-// Middleware to require seller role
-const requireSeller = async (req, res, next) => {
+export const requireSeller = async (req, res, next) => {
   await requireAuth(req, res, () => {
     if (req.auth.role !== "seller") {
       return res.status(403).json({ error: "Seller access required" });
@@ -42,6 +40,4 @@ const requireSeller = async (req, res, next) => {
   });
 };
 
-// ✅ Export both default and named
 export default requireAuth;
-export { requireSeller };

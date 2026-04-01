@@ -11,41 +11,32 @@ const app  = express();
 const PORT = process.env.PORT || 4000;
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:4000",
-  "https://nike-final-ten.vercel.app",
-   "https://nike-final-5gxa.vercel.app",   // hardcoded as backup
-  process.env.CLIENT_URL,                // also read from env
-].filter(Boolean);
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;                              // Postman, curl, server-to-server
+  if (origin.endsWith(".vercel.app")) return true;       // all Vercel deployments forever
+  if (origin === "http://localhost:5173") return true;   // local frontend
+  if (origin === "http://localhost:4000") return true;   // local server
+  if (origin === process.env.CLIENT_URL) return true;    // explicit env override
+  return false;
+};
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (Postman, curl, Render health checks)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.error(`[CORS] Blocked request from: ${origin}`);
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    console.error(`[CORS] Blocked: ${origin}`);
     return callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-}));
+};
 
-// Handle ALL preflight OPTIONS requests before any other middleware
-app.options("*", cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked: ${origin}`));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+// Handle preflight for ALL routes — must be before any other middleware
+app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
 
 // ─── Body parsing ─────────────────────────────────────────────────────────────
-// Stripe webhook needs the raw buffer — register BEFORE express.json()
+// Stripe webhook needs raw buffer — must be registered BEFORE express.json()
 app.post(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
@@ -56,7 +47,10 @@ app.use(express.json());
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({
+    status:   "ok",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -72,6 +66,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚀  Server running on http://localhost:${PORT}`);
-  console.log(`   Allowed origins: ${allowedOrigins.join(", ")}\n`);
+  console.log(`\n🚀  Server running on http://localhost:${PORT}\n`);
 });
