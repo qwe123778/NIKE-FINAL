@@ -12,11 +12,15 @@ const apiFetch = async (path, options = {}) => {
       const token = await _getToken({ template: null });
       if (token) headers["Authorization"] = `Bearer ${token}`;
     } catch {
-      // not signed in
+      // user not signed in, no token
     }
   }
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers,
+    credentials: "include", // ✅ include cookies
+  });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
