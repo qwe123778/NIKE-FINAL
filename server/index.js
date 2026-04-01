@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 4000;
 
 // ─── CORS ───────────────────────────────────────────────
 app.use(cors({
-  origin: ["https://nike-final-ten.vercel.app"], // frontend URL(s)
+  origin: ["https://nike-final-ten.vercel.app/"], // frontend URL(s)
   credentials: true,
 }));
 
