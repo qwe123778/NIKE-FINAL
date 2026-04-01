@@ -1,4 +1,3 @@
-// middleware/requireAuth.js
 import { clerkClient, verifyToken } from "../lib/clerk.js";
 
 const requireAuth = async (req, res, next) => {
@@ -13,7 +12,6 @@ const requireAuth = async (req, res, next) => {
     const payload = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY,
     });
-
     const user = await clerkClient.users.getUser(payload.sub);
 
     req.auth = {
@@ -29,15 +27,6 @@ const requireAuth = async (req, res, next) => {
     console.error("[requireAuth]", err.message);
     return res.status(401).json({ error: "Authentication failed" });
   }
-};
-
-export const requireSeller = async (req, res, next) => {
-  await requireAuth(req, res, () => {
-    if (req.auth.role !== "seller") {
-      return res.status(403).json({ error: "Seller access required" });
-    }
-    next();
-  });
 };
 
 export default requireAuth;

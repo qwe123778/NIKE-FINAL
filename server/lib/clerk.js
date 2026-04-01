@@ -1,7 +1,5 @@
-import { createClerkClient, verifyToken} from "@clerk/clerk-sdk-node";
+import { Clerk } from "@clerk/clerk-sdk-node";
 
-export const clerkClient = createClerkClient({
-  secretKey: process.env.CLERK_SECRET_KEY,
-});
+export const clerkClient = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
-export { verifyToken };
+export const verifyToken = (token, opts) => clerkClient.sessions.verifySessionToken(token, opts);
