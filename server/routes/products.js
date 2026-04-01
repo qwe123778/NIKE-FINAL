@@ -10,16 +10,22 @@ const router = Router();
  */
 router.get("/", async (_req, res) => {
   try {
+    console.log("[GET /products] Supabase URL:", process.env.SUPABASE_URL ? "set" : "MISSING");
+    console.log("[GET /products] Service key:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "MISSING");
+
     const { data, error } = await supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
 
+    console.log("[GET /products] data:", data);
+    console.log("[GET /products] error:", error);
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    console.error("[GET /products]", err.message);
-    res.status(500).json({ error: "Failed to fetch products" });
+    console.error("[GET /products] CATCH:", err.message, err);
+    res.status(500).json({ error: err.message });
   }
 });
 
