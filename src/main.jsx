@@ -12,7 +12,6 @@ if (!PUBLISHABLE_KEY) {
     "Get it from https://dashboard.clerk.com → your app → API Keys."
   );
 }
-
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
