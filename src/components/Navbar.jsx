@@ -27,7 +27,7 @@ const Navbar = () => {
       {/* Desktop navbar */}
       <div className="flex items-center justify-between h-16 px-6 md:px-12">
         <Link to="/" className="font-display text-2xl not-italic">
-          NIKE
+          SONACT
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

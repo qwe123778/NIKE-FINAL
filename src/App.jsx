@@ -20,7 +20,6 @@ import Signup            from "./pages/Signup";
 import Account           from "./pages/Account";
 import SellerDashboard   from "./pages/SellerDashboard";
 import Checkout          from "./pages/Checkout";
-import ForgotPassword    from "./pages/ForgotPassword";
 import NotFound          from "./pages/NotFound";
 import SelectRole        from "./pages/SelectRole";
 
@@ -57,7 +56,6 @@ const AppRoutes = () => (
             <Route path="/account"         element={<Account />} />
             <Route path="/sellerdashboard"          element={<SellerDashboard />} />
             <Route path="/checkout"        element={<Checkout />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="*"                element={<NotFound />} />
           </Routes>
         </WishlistProvider>

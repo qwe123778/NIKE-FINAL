@@ -9,25 +9,25 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Navigate, Link } from "react-router-dom";
 import apiFetch from "@/lib/api";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 const SellerDashboard = () => {
-  const { user, isSeller, isLoaded } = useAuth();
-  // const { products, loading }        = useProducts();
-  const { toast }                    = useToast();
-const { products, loading, refetch } = useProducts();
+  const { user, isSeller, isLoaded }   = useAuth();
+  const { products, loading, refetch } = useProducts();
+  const { toast }                      = useToast();
+
   const [name, setName]                 = useState("");
   const [category, setCategory]         = useState("");
   const [price, setPrice]               = useState("");
   const [description, setDescription]   = useState("");
   const [imagePreview, setImagePreview] = useState("");
+  const [imageFile, setImageFile]       = useState(null);
   const [showForm, setShowForm]         = useState(false);
   const [submitting, setSubmitting]     = useState(false);
   const [deleting, setDeleting]         = useState(null);
 
-  // My products = only those listed by this seller
   const myProducts = products.filter((p) => p.seller_id === user?.id);
 
-  // Wait for auth to load before redirecting
   if (!isLoaded) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (!isSeller) return (
@@ -39,7 +39,7 @@ const { products, loading, refetch } = useProducts();
         </div>
         <h2 className="font-display text-3xl not-italic">Seller Mode Required</h2>
         <p className="font-mono-tech text-muted-foreground text-center max-w-sm">
-          You're currently in Buyer Mode. Switch to Seller Mode in your account settings to access the dashboard.
+          You're currently in Buyer Mode. Switch to Seller Mode in your account settings.
         </p>
         <Link to="/account" className="action-button">
           <span>Switch in Account Settings</span>
@@ -53,10 +53,11 @@ const { products, loading, refetch } = useProducts();
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: "Error", description: "Image must be under 2MB." });
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be under 5MB." });
       return;
     }
+    setImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
@@ -71,13 +72,37 @@ const { products, loading, refetch } = useProducts();
 
     setSubmitting(true);
     try {
+      let image_url = "/placeholder.svg";
+
+      if (imageFile) {
+        if (!supabaseClient) {
+          throw new Error("Supabase client not initialized — check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env");
+        }
+
+        const fileName = `${Date.now()}-${imageFile.name.replace(/\s+/g, "-")}`;
+
+        const { error: uploadError } = await supabaseClient
+          .storage
+          .from("products")
+          .upload(fileName, imageFile, { upsert: true });
+
+        if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
+
+        const { data: urlData } = supabaseClient
+          .storage
+          .from("products")
+          .getPublicUrl(fileName);
+
+        image_url = urlData.publicUrl;
+      }
+
       await apiFetch("/api/products", {
         method: "POST",
         body: JSON.stringify({
           name,
           category,
           price:       parseFloat(price),
-          image_url:   imagePreview || "/placeholder.svg",
+          image_url,
           sizes:       [7, 8, 9, 10, 11, 12],
           description,
           is_new:      true,
@@ -85,12 +110,9 @@ const { products, loading, refetch } = useProducts();
       });
 
       toast({ title: "Product listed!", description: `${name} is now live.` });
-      setName(""); setCategory(""); setPrice(""); setDescription(""); setImagePreview(""); setShowForm(false);
-      // Refresh products list
-      // window.location.reload();
-      toast({ title: "Product listed!", description: `${name} is now live.` });
-setName(""); setCategory(""); setPrice(""); setDescription(""); setImagePreview(""); setShowForm(false);
-await refetch();
+      setName(""); setCategory(""); setPrice(""); setDescription("");
+      setImagePreview(""); setImageFile(null); setShowForm(false);
+      await refetch();
     } catch (err) {
       toast({ title: "Failed to list product", description: err.message });
     } finally {
@@ -103,9 +125,7 @@ await refetch();
     try {
       await apiFetch(`/api/products/${id}`, { method: "DELETE" });
       toast({ title: "Removed", description: `${productName} has been delisted.` });
-      // window.location.reload();
-      toast({ title: "Removed", description: `${productName} has been delisted.` });
-await refetch();
+      await refetch();
     } catch (err) {
       toast({ title: "Failed to remove", description: err.message });
     } finally {
@@ -146,8 +166,12 @@ await refetch();
           </button>
 
           {showForm && (
-            <motion.form initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-              onSubmit={handleSubmit} className="border border-border p-6 mb-8 space-y-4">
+            <motion.form
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              onSubmit={handleSubmit}
+              className="border border-border p-6 mb-8 space-y-4"
+            >
               <h2 className="font-display text-xl not-italic">New Product</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -167,15 +191,18 @@ await refetch();
                   {imagePreview ? (
                     <div className="relative w-32 h-32 border border-border overflow-hidden group">
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setImagePreview("")}
-                        className="absolute top-1 right-1 p-1 bg-background/80 text-muted-foreground hover:text-destructive rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => { setImagePreview(""); setImageFile(null); }}
+                        className="absolute top-1 right-1 p-1 bg-background/80 text-muted-foreground hover:text-destructive rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   ) : (
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors bg-muted/30">
                       <Upload className="w-6 h-6 text-muted-foreground mb-2" />
-                      <span className="font-mono-tech text-xs text-muted-foreground">Click to upload (max 2MB)</span>
+                      <span className="font-mono-tech text-xs text-muted-foreground">Click to upload (max 5MB)</span>
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   )}
@@ -183,9 +210,12 @@ await refetch();
               </div>
               <div>
                 <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Description *</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe your product..."
-                  className="w-full h-24 bg-muted/50 border border-border px-4 py-3 font-mono-tech text-sm text-foreground rounded-[4px] focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                  className="w-full h-24 bg-muted/50 border border-border px-4 py-3 font-mono-tech text-sm text-foreground rounded-[4px] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
               </div>
               <button type="submit" disabled={submitting} className="action-button disabled:opacity-50">
                 <span>{submitting ? "Publishing..." : "Publish Product"}</span>
@@ -201,9 +231,13 @@ await refetch();
             ) : myProducts.length === 0 ? (
               <div className="py-16 text-center font-mono-tech text-muted-foreground">No products listed yet.</div>
             ) : myProducts.map((product, i) => (
-              <motion.div key={product.id}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="flex items-center justify-between border-b border-border py-4 gap-4">
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-center justify-between border-b border-border py-4 gap-4"
+              >
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="w-16 h-16 bg-muted flex-shrink-0 overflow-hidden">
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -216,7 +250,8 @@ await refetch();
                 <button
                   onClick={() => handleDelete(product.id, product.name)}
                   disabled={deleting === product.id}
-                  className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40">
+                  className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </motion.div>

@@ -14,19 +14,15 @@ const HeroSection = () => (
           <div className="w-6 h-px bg-primary" />
           <p className="font-mono-tech text-primary">New Release — SS26</p>
         </div>
-        <h1 className="hero-text">Win On<br />Your Terms</h1>
+        <h1 className="hero-text">YOU BUY <br />You SELL</h1>
         <p className="text-muted-foreground mt-4 mb-8 max-w-sm leading-relaxed">
-          Engineered for athletes who refuse to compromise. Performance built into every detail.
+          Engineered for the so lovely art of buying and selling. All in onr site. Use Sonact
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <a href="#all" className="action-button w-full sm:w-auto">
             <span>Shop All</span>
             <span className="font-mono text-sm">→</span>
           </a>
-          <Link to="/product/1" className="h-[60px] border border-foreground/20 bg-transparent font-bold uppercase tracking-tighter flex items-center justify-between px-6 hover:bg-foreground/10 transition-colors duration-150 rounded-[4px]">
-            <span>Air Zoom Alpha</span>
-            <span className="font-mono text-sm ml-4">$275</span>
-          </Link>
         </div>
       </motion.div>
     </div>
