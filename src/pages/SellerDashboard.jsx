@@ -12,9 +12,9 @@ import apiFetch from "@/lib/api";
 import { supabaseClient } from "@/lib/supabaseClient";
 
 const SellerDashboard = () => {
-  const { user, isSeller, isLoaded }   = useAuth();
+  const { user, isSeller, isLoaded } = useAuth();
   const { products, loading, refetch } = useProducts();
-  const { toast }                      = useToast();
+  const { toast } = useToast();
 
   const [name, setName]                 = useState("");
   const [category, setCategory]         = useState("");
@@ -79,7 +79,8 @@ const SellerDashboard = () => {
           throw new Error("Supabase client not initialized — check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env");
         }
 
-        const fileName = `${Date.now()}-${imageFile.name.replace(/\s+/g, "-")}`;
+        const safeName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const fileName = `${Date.now()}-${safeName}`;
 
         const { error: uploadError } = await supabaseClient
           .storage
@@ -88,12 +89,8 @@ const SellerDashboard = () => {
 
         if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
 
-        const { data: urlData } = supabaseClient
-          .storage
-          .from("products")
-          .getPublicUrl(fileName);
-
-        image_url = urlData.publicUrl;
+        const { data } = supabaseClient.storage.from("products").getPublicUrl(fileName);
+        image_url = data.publicUrl;
       }
 
       await apiFetch("/api/products", {
@@ -102,18 +99,19 @@ const SellerDashboard = () => {
           name,
           category,
           price:       parseFloat(price),
+          description,
           image_url,
           sizes:       [7, 8, 9, 10, 11, 12],
-          description,
           is_new:      true,
         }),
       });
 
       toast({ title: "Product listed!", description: `${name} is now live.` });
       setName(""); setCategory(""); setPrice(""); setDescription("");
-      setImagePreview(""); setImageFile(null); setShowForm(false);
+      setImageFile(null); setImagePreview(""); setShowForm(false);
       await refetch();
     } catch (err) {
+      console.error("handleSubmit error:", err);
       toast({ title: "Failed to list product", description: err.message });
     } finally {
       setSubmitting(false);
