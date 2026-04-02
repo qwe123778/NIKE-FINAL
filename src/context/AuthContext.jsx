@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useUser, useClerk, useAuth as useClerkAuth } from "@clerk/clerk-react";
+const { signOut, session } = useClerk();
 import apiFetch from "@/lib/api";
 
 const AuthContext = createContext(undefined);
@@ -68,24 +69,29 @@ export const AuthProvider = ({ children }) => {
    * switchRole — switches between "buyer" and "seller".
    * Updates Clerk metadata via our server and reflects immediately in the UI.
    */
-  const switchRole = async (newRole) => {
-    setRoleLoading(true);
-    try {
-      const token = await getToken();
-      const updated = await apiFetch("/api/auth/set-role", {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ role: newRole }),
-      });
-      setServerUser((prev) => ({ ...prev, role: updated.role }));
-      return updated;
-    } catch (err) {
-      console.error("[AuthContext] switchRole failed:", err.message);
-      throw err;
-    } finally {
-      setRoleLoading(false);
-    }
-  };
+const switchRole = async (newRole) => {
+  setRoleLoading(true);
+  try {
+    const token = await getToken();
+    const updated = await apiFetch("/api/auth/set-role", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body:    JSON.stringify({ role: newRole }),
+    });
+
+    // Force Clerk to refresh the session so the new role
+    // is reflected in the next token
+    await clerk.session?.reload();
+
+    setServerUser((prev) => ({ ...prev, role: updated.role }));
+    return updated;
+  } catch (err) {
+    console.error("[AuthContext] switchRole failed:", err.message);
+    throw err;
+  } finally {
+    setRoleLoading(false);
+  }
+};
 
   // Keep setRole as alias for signup page compatibility
   const setRole = switchRole;

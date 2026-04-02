@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, Store } from "lucide-react";
-import { useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { useClerk, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const SelectRole = () => {
   const { getToken }    = useClerkAuth();
+  const { session }     = useClerk();
   const { setRole }     = useAuth();
   const navigate        = useNavigate();
   const { toast }       = useToast();
@@ -25,7 +26,15 @@ const SelectRole = () => {
         body: JSON.stringify({ role }),
       });
 
-      if (!res.ok) throw new Error("Failed to set role");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to set role");
+      }
+
+      // Reload the Clerk session so the new role is baked
+      // into the next JWT — without this the token still
+      // carries the old role and the server returns 400
+      await session?.reload();
 
       // Update local AuthContext so UI reflects instantly
       await setRole(role);
