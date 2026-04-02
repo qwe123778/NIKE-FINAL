@@ -1,21 +1,22 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useUser, useClerk, useAuth as useClerkAuth } from "@clerk/clerk-react";
-const { signOut, session } = useClerk();
 import apiFetch from "@/lib/api";
 
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
   const { isSignedIn, user: clerkUser, isLoaded } = useUser();
-  const { signOut }  = useClerk();
+  const { signOut, session } = useClerk(); // ✅ FIXED
   const { getToken } = useClerkAuth();
 
-  const [orders, setOrders]           = useState([]);
-  const [serverUser, setServerUser]   = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [serverUser, setServerUser] = useState(null);
   const [roleLoading, setRoleLoading] = useState(false);
 
+  // 🔹 Load user + orders from backend
   useEffect(() => {
     if (!isLoaded) return;
+
     if (!isSignedIn || !clerkUser) {
       setServerUser(null);
       setOrders([]);
@@ -25,25 +26,30 @@ export const AuthProvider = ({ children }) => {
     const load = async () => {
       try {
         const token = await getToken();
-        const headers = { Authorization: `Bearer ${token}` };
 
         const [userData, ordersData] = await Promise.all([
-          apiFetch("/api/auth/me",  { headers }),
-          apiFetch("/api/orders",   { headers }),
+          apiFetch("/api/auth/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          apiFetch("/api/orders", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         setServerUser(userData);
         setOrders(Array.isArray(ordersData) ? ordersData : []);
       } catch (err) {
         console.warn("[AuthContext] load failed:", err.message);
-        // Fallback to Clerk data so the UI still works
+
+        // fallback to Clerk user
         setServerUser({
-          id:    clerkUser.id,
-          name:  clerkUser.fullName
-                 || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0]
-                 || "User",
+          id: clerkUser.id,
+          name:
+            clerkUser.fullName ||
+            clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+            "User",
           email: clerkUser.primaryEmailAddress?.emailAddress || "",
-          role:  clerkUser.publicMetadata?.role || "buyer",
+          role: clerkUser.publicMetadata?.role || "buyer",
         });
       }
     };
@@ -51,76 +57,74 @@ export const AuthProvider = ({ children }) => {
     load();
   }, [isLoaded, isSignedIn, clerkUser?.id]);
 
-  // const logout = async () => {
-  //   setServerUser(null);
-  //   setOrders([]);
-  //   await signOut();
-  // };
-
+  // 🔹 Logout
   const logout = async () => {
-  setServerUser(null);
-  setOrders([]);
-  // Clear guest wishlist cache on logout
-  localStorage.removeItem("nike-wishlist-guest");
-  await signOut();
-};
+    setServerUser(null);
+    setOrders([]);
+    localStorage.removeItem("nike-wishlist-guest");
+    await signOut();
+  };
 
-  /**
-   * switchRole — switches between "buyer" and "seller".
-   * Updates Clerk metadata via our server and reflects immediately in the UI.
-   */
-const switchRole = async (newRole) => {
-  setRoleLoading(true);
-  try {
-    const token = await getToken();
-    const updated = await apiFetch("/api/auth/set-role", {
-      method:  "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body:    JSON.stringify({ role: newRole }),
-    });
+  // 🔹 Switch role (buyer ↔ seller)
+  const switchRole = async (newRole) => {
+    setRoleLoading(true);
 
-    // Force Clerk to refresh the session so the new role
-    // is reflected in the next token
-    await clerk.session?.reload();
+    try {
+      const token = await getToken();
 
-    setServerUser((prev) => ({ ...prev, role: updated.role }));
-    return updated;
-  } catch (err) {
-    console.error("[AuthContext] switchRole failed:", err.message);
-    throw err;
-  } finally {
-    setRoleLoading(false);
-  }
-};
+      const updated = await apiFetch("/api/auth/set-role", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role: newRole }),
+      });
 
-  // Keep setRole as alias for signup page compatibility
+      // ✅ refresh Clerk session so role updates instantly
+      await session?.reload();
+
+      setServerUser((prev) => ({ ...prev, role: updated.role }));
+      return updated;
+    } catch (err) {
+      console.error("[AuthContext] switchRole failed:", err.message);
+      throw err;
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
   const setRole = switchRole;
 
-  const addOrder = (order) => setOrders((prev) => [order, ...prev]);
+  const addOrder = (order) => {
+    setOrders((prev) => [order, ...prev]);
+  };
 
   const user = serverUser || null;
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoggedIn:   !!user,
-      isSeller:     user?.role === "seller",
-      isBuyer:      user?.role === "buyer",
-      isLoaded,
-      roleLoading,
-      logout,
-      setRole,
-      switchRole,
-      orders,
-      addOrder,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoggedIn: !!user,
+        isSeller: user?.role === "seller",
+        isBuyer: user?.role === "buyer",
+        isLoaded,
+        roleLoading,
+        logout,
+        setRole,
+        switchRole,
+        orders,
+        addOrder,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
+// 🔹 Hook
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
   return ctx;
 };
