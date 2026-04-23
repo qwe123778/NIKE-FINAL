@@ -8,12 +8,19 @@ const router = express.Router();
 router.get("/me", requireAuth, async (req, res) => {
   const { userId, role, email, name } = req.auth;
 
-  await supabase
+  // Upsert user into Supabase — log any errors but don't block response
+  const { error: upsertError } = await supabase
     .from("users")
     .upsert(
       { id: userId, email, name, role, updated_at: new Date().toISOString() },
       { onConflict: "id" }
     );
+
+  if (upsertError) {
+    console.error("[GET /auth/me] Supabase upsert failed:", upsertError.message, upsertError.details, upsertError.hint);
+  } else {
+    console.log("[GET /auth/me] User upserted:", userId, email, role);
+  }
 
   res.json({ id: userId, email, name, role });
 });
@@ -28,16 +35,24 @@ router.post("/set-role", requireAuth, async (req, res) => {
   try {
     const { userId, email, name } = req.auth;
 
+    // Update role in Clerk
     await clerkClient.users.updateUser(userId, {
       publicMetadata: { role },
     });
 
-    await supabase
+    // Upsert into Supabase
+    const { error: upsertError } = await supabase
       .from("users")
       .upsert(
         { id: userId, email, name, role, updated_at: new Date().toISOString() },
         { onConflict: "id" }
       );
+
+    if (upsertError) {
+      console.error("[POST /auth/set-role] Supabase upsert failed:", upsertError.message, upsertError.details, upsertError.hint);
+    } else {
+      console.log("[POST /auth/set-role] Role updated:", userId, role);
+    }
 
     res.json({ success: true, role });
   } catch (err) {

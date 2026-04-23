@@ -1,7 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-
+// import orderRoutes   from "./routes/orders.js";
+import sellerRoutes  from "./routes/sellers.js";
 import authRoutes    from "./routes/auth.js";
 import productRoutes from "./routes/products.js";
 import orderRoutes   from "./routes/orders.js";
@@ -59,7 +60,7 @@ app.use("/api/auth",     authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders",   orderRoutes);
 app.use("/api/stripe",   stripeRoutes);
-
+app.use("/api/sellers",  sellerRoutes);
 // ─── Global error handler ────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error("[Server error]", err.message);
