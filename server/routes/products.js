@@ -39,7 +39,7 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/products — seller only
 router.post("/", requireSeller, async (req, res) => {
-  const { name, category, price, sku, image_url, sizes, weight, offset, description, is_new } = req.body;
+  const { name, category, price, image_url, description, is_new, stock } = req.body;
 
   if (!name || !category || !price || !image_url) {
     return res.status(400).json({ error: "name, category, price and image_url are required" });
@@ -50,19 +50,14 @@ router.post("/", requireSeller, async (req, res) => {
       name,
       category,
       price:       Number(price),
-      sku:         sku || `SP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      sku:         `SP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
       image_url,
-      sizes:       sizes || [7, 8, 9, 10, 11, 12],
-      weight:      weight || "N/A",
       description: description || "",
       is_new:      is_new ?? false,
+      stock:       stock || 1,
       seller_id:   req.auth.userId,
+      seller_name: req.auth.name,
     };
-
-    // "offset" is a reserved word in PostgreSQL — only include if column exists
-    if (offset !== undefined) insertData.offset = offset || "N/A";
-
-    console.log("[POST /products] inserting:", insertData);
 
     const { data, error } = await supabase
       .from("products")
@@ -71,8 +66,26 @@ router.post("/", requireSeller, async (req, res) => {
       .single();
 
     if (error) {
-      console.error("[POST /products] Supabase error:", error.message, error.details, error.hint);
-      return res.status(500).json({ error: error.message, details: error.details, hint: error.hint });
+      console.error("[POST /products]", error.message, error.hint);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Notify followers that this seller added a new product
+    const { data: followers } = await supabase
+      .from("seller_follows")
+      .select("buyer_id")
+      .eq("seller_id", req.auth.userId);
+
+    if (followers?.length > 0) {
+      const notifs = followers.map((f) => ({
+        buyer_id: f.buyer_id,
+        type:     "new_product",
+        title:    `${req.auth.name} added a new product`,
+        message:  `${name} — $${price}`,
+        link:     `/product/${data.id}`,
+        read:     false,
+      }));
+      await supabase.from("buyer_notifications").insert(notifs);
     }
 
     res.status(201).json(data);

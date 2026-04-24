@@ -4,7 +4,35 @@ import requireAuth, { requireSeller } from "../middleware/requireAuth.js";
 
 const router = Router();
 
-// GET /api/sellers/notifications — get unread notifications for this seller
+// ── Stats ─────────────────────────────────────────────────────────────────
+router.get("/stats", requireSeller, async (req, res) => {
+  try {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("total_earnings")
+      .eq("id", req.auth.userId)
+      .single();
+
+    const { data: notifications } = await supabase
+      .from("seller_notifications")
+      .select("order_id, quantity, price")
+      .eq("seller_id", req.auth.userId);
+
+    const totalOrders    = new Set(notifications?.map((n) => n.order_id)).size;
+    const totalUnitsSold = notifications?.reduce((sum, n) => sum + Number(n.quantity), 0) || 0;
+
+    res.json({
+      balance:       Number(userData?.total_earnings || 0),
+      totalOrders,
+      totalUnitsSold,
+    });
+  } catch (err) {
+    console.error("[GET /sellers/stats]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Notifications ─────────────────────────────────────────────────────────
 router.get("/notifications", requireSeller, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -16,90 +44,112 @@ router.get("/notifications", requireSeller, async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    console.error("[GET /sellers/notifications]", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// PATCH /api/sellers/notifications/:id/read — mark notification as read
 router.patch("/notifications/:id/read", requireSeller, async (req, res) => {
   try {
-    const { error } = await supabase
-      .from("seller_notifications")
-      .update({ read: true })
-      .eq("id", req.params.id)
-      .eq("seller_id", req.auth.userId);
-
-    if (error) throw error;
+    await supabase.from("seller_notifications").update({ read: true })
+      .eq("id", req.params.id).eq("seller_id", req.auth.userId);
     res.json({ success: true });
   } catch (err) {
-    console.error("[PATCH /sellers/notifications/:id/read]", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// PATCH /api/sellers/notifications/read-all — mark all as read
 router.patch("/notifications/read-all", requireSeller, async (req, res) => {
   try {
-    const { error } = await supabase
-      .from("seller_notifications")
-      .update({ read: true })
+    await supabase.from("seller_notifications").update({ read: true })
       .eq("seller_id", req.auth.userId);
-
-    if (error) throw error;
     res.json({ success: true });
   } catch (err) {
-    console.error("[PATCH /sellers/notifications/read-all]", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/sellers/stats — balance, total orders, total products sold
-router.get("/stats", requireSeller, async (req, res) => {
-  try {
-    // Get seller's total earnings from users table
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("total_earnings")
-      .eq("id", req.auth.userId)
-      .single();
-
-    if (userError) throw userError;
-
-    // Get total number of orders containing this seller's products
-    const { data: notifications } = await supabase
-      .from("seller_notifications")
-      .select("order_id, quantity, price")
-      .eq("seller_id", req.auth.userId);
-
-    const totalOrders   = new Set(notifications?.map((n) => n.order_id)).size;
-    const totalUnitsSold = notifications?.reduce((sum, n) => sum + Number(n.quantity), 0) || 0;
-
-    res.json({
-      balance:        Number(userData?.total_earnings || 0),
-      totalOrders,
-      totalUnitsSold,
-    });
-  } catch (err) {
-    console.error("[GET /sellers/stats]", err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/sellers/orders — all orders containing this seller's products
+// ── Sales ─────────────────────────────────────────────────────────────────
 router.get("/orders", requireSeller, async (req, res) => {
   try {
-    const { data: notifications, error } = await supabase
+    const { data, error } = await supabase
       .from("seller_notifications")
       .select("*")
       .eq("seller_id", req.auth.userId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    res.json(notifications);
+    res.json(data);
   } catch (err) {
-    console.error("[GET /sellers/orders]", err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Public profile ────────────────────────────────────────────────────────
+router.get("/profile/:sellerId", async (req, res) => {
+  try {
+    const { data: seller, error } = await supabase
+      .from("users")
+      .select("id, name, role, created_at")
+      .eq("id", req.params.sellerId)
+      .eq("role", "seller")
+      .single();
+
+    if (error || !seller) return res.status(404).json({ error: "Seller not found" });
+
+    const { data: products } = await supabase
+      .from("products")
+      .select("*")
+      .eq("seller_id", req.params.sellerId)
+      .order("created_at", { ascending: false });
+
+    const { count: followerCount } = await supabase
+      .from("seller_follows")
+      .select("*", { count: "exact", head: true })
+      .eq("seller_id", req.params.sellerId);
+
+    res.json({ seller, products: products || [], followerCount: followerCount || 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Follow / Unfollow ─────────────────────────────────────────────────────
+router.post("/follow/:sellerId", requireAuth, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from("seller_follows")
+      .insert([{ buyer_id: req.auth.userId, seller_id: req.params.sellerId }]);
+
+    if (error) throw error;
+    res.json({ success: true, following: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete("/follow/:sellerId", requireAuth, async (req, res) => {
+  try {
+    await supabase.from("seller_follows")
+      .delete()
+      .eq("buyer_id", req.auth.userId)
+      .eq("seller_id", req.params.sellerId);
+    res.json({ success: true, following: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/follow/:sellerId", requireAuth, async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from("seller_follows")
+      .select("id")
+      .eq("buyer_id", req.auth.userId)
+      .eq("seller_id", req.params.sellerId)
+      .single();
+    res.json({ following: !!data });
+  } catch {
+    res.json({ following: false });
   }
 });
 

@@ -7,6 +7,8 @@ import authRoutes    from "./routes/auth.js";
 import productRoutes from "./routes/products.js";
 import orderRoutes   from "./routes/orders.js";
 import stripeRoutes  from "./routes/stripe.js";
+import chatRoutes             from "./routes/chat.js";
+import buyerNotifRoutes       from "./routes/buyer-notifications.js";
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
@@ -61,6 +63,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders",   orderRoutes);
 app.use("/api/stripe",   stripeRoutes);
 app.use("/api/sellers",  sellerRoutes);
+app.use("/api/chat",                chatRoutes);
+app.use("/api/buyer-notifications", buyerNotifRoutes);
 // ─── Global error handler ────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error("[Server error]", err.message);

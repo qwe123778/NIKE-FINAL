@@ -28,8 +28,8 @@ const ProductDetail = () => {
   const wishlisted = isInWishlist(product.id);
 
   const handleAddToCart = () => {
-    if (!selectedSize) { toast({ title: "Select a size", description: "Choose your size before adding to cart." }); return; }
-    addItem(product, selectedSize);
+    // if (!selectedSize) { toast({ title: "Select a size", description: "Choose your size before adding to cart." }); return; }
+    addItem(product);
     toast({ title: "Added to cart", description: `${product.name} — Size ${selectedSize}` });
   };
 
