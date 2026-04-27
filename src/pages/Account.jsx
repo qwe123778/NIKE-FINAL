@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Package, Heart, LogOut, MapPin, Settings,
   Plus, Pencil, Trash2, Check, Shield, Bell,
-  ShoppingCart, Store, RefreshCw,
+  ShoppingCart, Store, RefreshCw, MessageSquare,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -370,7 +370,23 @@ const handleSaveAddress = (addr) => {
                               <p className="text-sm text-muted-foreground mt-1.5 line-clamp-1">
                                 {(order.order_items || order.items || []).map((i) => i.name).join(", ")}
                               </p>
-                            </div>
+                            </div><div className="flex items-center gap-4 shrink-0">
+  <span className={`font-mono-tech px-3 py-1 rounded-full text-[10px] uppercase tracking-wider ${
+    ["paid","delivered"].includes(order.status?.toLowerCase()) ? "bg-primary/20 text-primary" :
+    ["processing","shipped"].includes(order.status?.toLowerCase()) ? "bg-blue-500/20 text-blue-400" :
+    "bg-muted text-muted-foreground"
+  }`}>
+    {order.status}
+  </span>
+  <span className="font-mono tabular-nums text-lg">${Number(order.total).toFixed(2)}</span>
+  {/* Chat button */}
+  <Link
+    to={`/orders/${order.id}/chat`}
+    className="flex items-center gap-1.5 font-mono-tech text-xs text-muted-foreground hover:text-primary transition-colors border border-foreground/10 px-3 py-1.5 rounded-[4px] hover:border-primary/30"
+  >
+    <MessageSquare className="w-3.5 h-3.5" />Chat
+  </Link>
+</div>
                             <div className="flex items-center gap-4 shrink-0">
                               <span className={`font-mono-tech px-3 py-1 rounded-full text-[10px] uppercase tracking-wider ${
                                 ["paid","delivered"].includes(order.status?.toLowerCase())   ? "bg-primary/20 text-primary" :
@@ -384,6 +400,7 @@ const handleSaveAddress = (addr) => {
                           </div>
                         ))}
                       </div>
+                      
                     )}
                   </div>
                 )}

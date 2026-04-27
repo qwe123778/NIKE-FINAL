@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ShoppingBag, Heart, User, Menu, X } from "lucide-react";
+import BuyerNotificationBell from "@/components/BuyerNotificationBell";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -79,6 +80,12 @@ const Navbar = () => {
             )}
           </button>
 
+<button onClick={() => setIsCartOpen(true)} className="relative p-2 hover:bg-secondary transition-colors rounded-[4px]">
+  ...
+</button>
+
+{/* Buyer notification bell */}
+<BuyerNotificationBell />
           {/* Auth */}
           <SignedIn>
             <Link

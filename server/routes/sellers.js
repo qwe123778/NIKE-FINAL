@@ -87,14 +87,16 @@ router.get("/orders", requireSeller, async (req, res) => {
 // ── Public profile ────────────────────────────────────────────────────────
 router.get("/profile/:sellerId", async (req, res) => {
   try {
+    // Don't filter by role — just find the user
     const { data: seller, error } = await supabase
       .from("users")
       .select("id, name, role, created_at")
       .eq("id", req.params.sellerId)
-      .eq("role", "seller")
       .single();
 
-    if (error || !seller) return res.status(404).json({ error: "Seller not found" });
+    if (error || !seller) {
+      return res.status(404).json({ error: "Seller not found" });
+    }
 
     const { data: products } = await supabase
       .from("products")
@@ -107,8 +109,13 @@ router.get("/profile/:sellerId", async (req, res) => {
       .select("*", { count: "exact", head: true })
       .eq("seller_id", req.params.sellerId);
 
-    res.json({ seller, products: products || [], followerCount: followerCount || 0 });
+    res.json({
+      seller,
+      products:      products || [],
+      followerCount: followerCount || 0,
+    });
   } catch (err) {
+    console.error("[GET /sellers/profile/:sellerId]", err.message);
     res.status(500).json({ error: err.message });
   }
 });

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, Package, DollarSign, Upload, X, Store,
-  Bell, ShoppingBag, Wallet, MapPin, Check, RefreshCw,
+  Bell, ShoppingBag, Wallet, MapPin, Check, RefreshCw, MessageSquare,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -37,6 +37,7 @@ const SellerDashboard = () => {
   const [name, setName]                 = useState("");
   const [category, setCategory]         = useState("");
   const [price, setPrice]               = useState("");
+  const [stock, setStock]               = useState("1");
   const [description, setDescription]   = useState("");
   const [imagePreview, setImagePreview] = useState("");
   const [imageFile, setImageFile]       = useState(null);
@@ -107,12 +108,20 @@ const SellerDashboard = () => {
 
       await apiFetch("/api/products", {
         method: "POST",
-        body: JSON.stringify({ name, category, price: parseFloat(price), description, image_url, sizes: [7,8,9,10,11,12], is_new: true }),
+        body: JSON.stringify({
+          name,
+          category,
+          price:       parseFloat(price),
+          description,
+          image_url,
+          stock:       parseInt(stock) || 1,
+          is_new:      true,
+        }),
       });
 
       toast({ title: "Product listed!", description: `${name} is now live.` });
-      setName(""); setCategory(""); setPrice(""); setDescription("");
-      setImageFile(null); setImagePreview(""); setShowForm(false);
+      setName(""); setCategory(""); setPrice(""); setStock("1");
+      setDescription(""); setImageFile(null); setImagePreview(""); setShowForm(false);
       await refetch();
     } catch (err) {
       toast({ title: "Failed to list product", description: err.message });
@@ -138,6 +147,7 @@ const SellerDashboard = () => {
     <>
       <Navbar />
       <div className="min-h-screen pt-20 bg-background">
+
         {/* Header */}
         <div className="px-6 md:px-12 py-8 border-b border-border">
           <span className="font-mono-tech text-primary text-sm">Seller</span>
@@ -207,29 +217,40 @@ const SellerDashboard = () => {
                   </button>
 
                   {showForm && (
-                    <motion.form initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                      onSubmit={handleSubmit} className="border border-border p-6 mb-8 space-y-4">
+                    <motion.form
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      onSubmit={handleSubmit}
+                      className="border border-border p-6 mb-8 space-y-4"
+                    >
                       <h2 className="font-display text-xl not-italic">New Product</h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Product Name *</label>
-                          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Air Max Pro" className="bg-muted/50" />
+                          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Vintage Lamp" className="bg-muted/50" />
                         </div>
                         <div>
                           <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Category *</label>
-                          <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Running" className="bg-muted/50" />
+                          <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Home Decor" className="bg-muted/50" />
                         </div>
                         <div>
                           <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Price ($) *</label>
                           <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="199" className="bg-muted/50" />
+                        </div>
+                        <div>
+                          <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Stock Quantity</label>
+                          <Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="bg-muted/50" />
                         </div>
                         <div className="md:col-span-2">
                           <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Product Image</label>
                           {imagePreview ? (
                             <div className="relative w-32 h-32 border border-border overflow-hidden group">
                               <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                              <button type="button" onClick={() => { setImagePreview(""); setImageFile(null); }}
-                                className="absolute top-1 right-1 p-1 bg-background/80 text-muted-foreground hover:text-destructive rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => { setImagePreview(""); setImageFile(null); }}
+                                className="absolute top-1 right-1 p-1 bg-background/80 text-muted-foreground hover:text-destructive rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
                                 <X className="w-3 h-3" />
                               </button>
                             </div>
@@ -244,9 +265,12 @@ const SellerDashboard = () => {
                       </div>
                       <div>
                         <label className="font-mono-tech text-muted-foreground text-xs block mb-1">Description *</label>
-                        <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                        <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
                           placeholder="Describe your product..."
-                          className="w-full h-24 bg-muted/50 border border-border px-4 py-3 font-mono-tech text-sm text-foreground rounded-[4px] focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                          className="w-full h-24 bg-muted/50 border border-border px-4 py-3 font-mono-tech text-sm text-foreground rounded-[4px] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                        />
                       </div>
                       <button type="submit" disabled={submitting} className="action-button disabled:opacity-50">
                         <span>{submitting ? "Publishing..." : "Publish Product"}</span>
@@ -261,21 +285,40 @@ const SellerDashboard = () => {
                     ) : myProducts.length === 0 ? (
                       <div className="py-16 text-center font-mono-tech text-muted-foreground">No products listed yet.</div>
                     ) : myProducts.map((product, i) => (
-                      <motion.div key={product.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }} className="flex items-center justify-between border-b border-border py-4 gap-4">
+                      <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center justify-between border-b border-border py-4 gap-4"
+                      >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
-                          <div className="w-16 h-16 bg-muted flex-shrink-0 overflow-hidden">
+                          <div className="w-16 h-16 bg-muted flex-shrink-0 overflow-hidden rounded-[4px]">
                             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-display text-sm not-italic truncate">{product.name}</p>
                             <p className="font-mono-tech text-xs text-muted-foreground">{product.category} · ${product.price}</p>
+                            {product.stock !== undefined && (
+                              <p className="font-mono-tech text-xs text-muted-foreground">Stock: {product.stock}</p>
+                            )}
                           </div>
                         </div>
-                        <button onClick={() => handleDelete(product.id, product.name)} disabled={deleting === product.id}
-                          className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Link
+                            to={`/sellers/${user.id}`}
+                            className="font-mono-tech text-xs text-muted-foreground hover:text-primary transition-colors border border-foreground/10 px-3 py-1.5 rounded-[4px] hover:border-primary/30"
+                          >
+                            View
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(product.id, product.name)}
+                            disabled={deleting === product.id}
+                            className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -312,9 +355,18 @@ const SellerDashboard = () => {
                                 {new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </p>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="font-mono text-xl tabular-nums text-primary">${Number(order.price).toFixed(2)}</p>
-                              <p className="font-mono-tech text-xs text-muted-foreground">Qty: {order.quantity} · Size: {order.size}</p>
+                            <div className="flex items-start gap-3">
+                              <div className="text-right">
+                                <p className="font-mono text-xl tabular-nums text-primary">${Number(order.price).toFixed(2)}</p>
+                                <p className="font-mono-tech text-xs text-muted-foreground">Qty: {order.quantity}</p>
+                              </div>
+                              {/* Chat with buyer */}
+                              <Link
+                                to={`/orders/${order.order_id}/chat`}
+                                className="flex items-center gap-1.5 font-mono-tech text-xs text-muted-foreground hover:text-primary transition-colors border border-foreground/10 px-3 py-1.5 rounded-[4px] hover:border-primary/30 shrink-0"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />Chat
+                              </Link>
                             </div>
                           </div>
 
@@ -390,8 +442,10 @@ const SellerDashboard = () => {
                   ) : (
                     <div className="space-y-3">
                       {notifications.map((notif) => (
-                        <div key={notif.id}
-                          className={`card-surface p-5 transition-all ${!notif.read ? "border-primary/30 bg-primary/3" : ""}`}>
+                        <div
+                          key={notif.id}
+                          className={`card-surface p-5 transition-all ${!notif.read ? "border-primary/30" : ""}`}
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3 flex-1">
                               <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${notif.read ? "bg-muted" : "bg-primary"}`} />
@@ -402,11 +456,18 @@ const SellerDashboard = () => {
                                   <span className="text-primary">{notif.product_name}</span>
                                 </p>
                                 <p className="font-mono-tech text-xs text-muted-foreground mt-1">
-                                  Size {notif.size} · Qty {notif.quantity} · ${Number(notif.price).toFixed(2)}
+                                  Qty {notif.quantity} · ${Number(notif.price).toFixed(2)}
                                 </p>
                                 <p className="font-mono-tech text-xs text-muted-foreground mt-0.5">
                                   {new Date(notif.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                 </p>
+                                {/* Chat with buyer */}
+                                <Link
+                                  to={`/orders/${notif.order_id}/chat`}
+                                  className="inline-flex items-center gap-1 font-mono-tech text-xs text-primary hover:underline mt-2"
+                                >
+                                  <MessageSquare className="w-3 h-3" />Chat with buyer →
+                                </Link>
 
                                 {notif.shipping_address && (
                                   <div className="mt-3 bg-secondary border border-foreground/10 p-3 rounded-[4px]">
@@ -423,8 +484,10 @@ const SellerDashboard = () => {
                               </div>
                             </div>
                             {!notif.read && (
-                              <button onClick={() => markRead(notif.id)}
-                                className="font-mono-tech text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-1">
+                              <button
+                                onClick={() => markRead(notif.id)}
+                                className="font-mono-tech text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-1"
+                              >
                                 Mark read
                               </button>
                             )}
@@ -441,7 +504,6 @@ const SellerDashboard = () => {
                 <div className="max-w-xl space-y-6">
                   <h2 className="font-display text-2xl not-italic mb-6">Balance & Earnings</h2>
 
-                  {/* Main balance card */}
                   <div className="card-surface p-8 text-center border-primary/30">
                     <Wallet className="w-12 h-12 text-primary mx-auto mb-4" />
                     <p className="font-mono-tech text-muted-foreground mb-2">Total Earnings</p>
@@ -453,7 +515,6 @@ const SellerDashboard = () => {
                     </p>
                   </div>
 
-                  {/* Breakdown */}
                   <div className="card-surface p-6">
                     <h3 className="font-display text-lg not-italic mb-4">Earnings Breakdown</h3>
                     {orders.length === 0 ? (

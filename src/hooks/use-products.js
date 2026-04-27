@@ -22,6 +22,7 @@ export function useProducts() {
         offset:      row.offset      || "N/A",
         description: row.description || "",
         isNew:       row.is_new      ?? false,
+        seller_name: row.seller_name || null,
         seller_id:   row.seller_id   || null,
       }));
       setProducts(mapped);

@@ -22,7 +22,9 @@ import SellerDashboard   from "./pages/SellerDashboard";
 import Checkout          from "./pages/Checkout";
 import NotFound          from "./pages/NotFound";
 import SelectRole        from "./pages/SelectRole";
-
+import SellerProfile      from "./pages/SellerProfile";
+import OrderChat          from "./pages/OrderChat";
+import NotificationsPage  from "./pages/NotificationsPage";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,9 @@ const AppRoutes = () => (
             <Route path="/sellerdashboard"          element={<SellerDashboard />} />
             <Route path="/checkout"        element={<Checkout />} />
             <Route path="*"                element={<NotFound />} />
+            <Route path="/sellers/:sellerId"      element={<SellerProfile />} />
+<Route path="/orders/:orderId/chat"   element={<OrderChat />} />
+<Route path="/notifications"          element={<NotificationsPage />} />
           </Routes>
         </WishlistProvider>
       </CartProvider>
