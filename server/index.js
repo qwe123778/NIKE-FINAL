@@ -1,17 +1,17 @@
 import "dotenv/config"; // Move this to the absolute top so process.env works immediately
-import { HttpsProxyAgent } from "https-proxy-agent";
+// import { HttpsProxyAgent } from "https-proxy-agent";
 
-// Only patch fetch if we are running locally with a proxy
-if (process.env.USE_PROXY === "true") {
-  const proxyUrl = "http://10.134.239.172:8080";
-  const agent = new HttpsProxyAgent(proxyUrl);
+// // Only patch fetch if we are running locally with a proxy
+// if (process.env.USE_PROXY === "true") {
+//   const proxyUrl = "http://10.134.239.172:8080";
+//   const agent = new HttpsProxyAgent(proxyUrl);
   
-  const originalFetch = global.fetch;
-  global.fetch = (url, options = {}) => {
-    return originalFetch(url, { ...options, dispatcher: agent });
-  };
-  console.log("⚠️ Using local network proxy agent");
-}
+//   const originalFetch = global.fetch;
+//   global.fetch = (url, options = {}) => {
+//     return originalFetch(url, { ...options, dispatcher: agent });
+//   };
+//   console.log("⚠️ Using local network proxy agent");
+// }
 
 import express from "express";
 import cors from "cors";
